@@ -171,7 +171,7 @@ float DFOC_M0_Velocity()
 }
 
 //==============串口接收==============
-float motor_target;
+float motor_target=100;
 int commaPosition;
 String serialReceiveUserCommand() {
   
