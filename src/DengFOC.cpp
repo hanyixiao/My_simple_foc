@@ -221,7 +221,7 @@ void DFOC_M0_set_Velocity_Angle(float Target)
 
 void DFOC_M0_setVelocity(float Target)
 {
-  setTorque(DFOC_M0_VEL_PID((serial_motor_target()-DFOC_M0_Velocity())*180/PI),_electricalAngle());   //速度闭环
+  setTorque(DFOC_M0_VEL_PID((Target-DFOC_M0_Velocity())),_electricalAngle());   //速度闭环
 }
 
 void DFOC_M0_set_Force_Angle(float Target)   //力位

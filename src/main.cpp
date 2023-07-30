@@ -18,10 +18,13 @@ void setup() {
 
 void loop() 
 {
+  float Sensor_Vel;
   digitalWrite(LED_BUILTIN,pin);
   pin=!pin;
   DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
-  DFOC_M0_SET_VEL_PID(0.01,0.00,0,0);
-  DFOC_M0_set_Velocity_Angle(serial_motor_target()); 
-  //Serial.printf("target angle %f read angle %f\r\n",serial_motor_target(),DFOC_M0_Angle());
+  DFOC_M0_SET_VEL_PID(3.1,0.05,0.1,100);
+  Sensor_Vel=DFOC_M0_Velocity();
+  DFOC_M0_setVelocity(0.5);
+  // DFOC_M0_set_Velocity_Angle(serial_motor_target()); 
+  // Serial.printf("speed %f read speed%f\r\n",2.0f,Sensor_Vel);
 }
