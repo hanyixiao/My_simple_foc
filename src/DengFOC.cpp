@@ -145,11 +145,13 @@ void DFOC_alignSensor(int _PP,int _DIR)
   S0.Sensor_update();  //更新角度，方便下面电角度读取
   zero_electric_angle=_electricalAngle();
   setTorque(0, _3PI_2);  //松劲（解除校准）
-  Serial.print("0电角度：");Serial.println(zero_electric_angle);
+  // Serial.print("0电角度：");Serial.println(zero_electric_angle);
 }
 
 float DFOC_M0_Angle()
 {
+  // S0.Sensor_update();
+  // Serial.printf("real angle is %f\r\n",S0.getAngle());
   return DIR*S0.getAngle();
 }
 
