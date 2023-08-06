@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "*.tcc": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "simplefoc.h": "c",
+        "lowpass_filter.h": "c",
+        "mpu6050_tockn.h": "c",
+        "string": "cpp"
     }
 }
