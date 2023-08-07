@@ -393,7 +393,6 @@ void loop()
 {
     if(timer_count%1000==0)
     {
-        timer_count++;
         UART_printf("Current counter value: %u\n", counter);
         UART_printf("loop 1S %d\r\n",timer_count);
     }
@@ -405,7 +404,8 @@ void loop()
         DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
         DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
         Sensor_Vel=DFOC_M0_Velocity();
-        DFOC_M0_setVelocity(target_speed);
+        setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
+        // DFOC_M0_setVelocity(target_speed);
     }
 
 }
