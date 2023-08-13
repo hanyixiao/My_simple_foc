@@ -14,7 +14,7 @@ float LowPassFilter::operator() (float x)
 
     float dt = (timestamp - timestamp_prev)*1e-6f;
     
-    // UART_printf("dt value: %d %d\n", timestamp,timestamp_prev);
+    UART_printf("dt value: %d\n", timestamp-timestamp_prev);
     if (dt < 0.0f ) dt = 1e-3f;
     else if(dt > 0.3f) {
         y_prev = x;
