@@ -246,7 +246,6 @@ void UART_printf(const char *pcString, ...)
                     
                     break;
                 }
-
                 /* Handle the %s command. */
                 case (char) 's':
                 {
@@ -424,12 +423,6 @@ void setup() {
 
 void loop() 
 {
-    // pin=!pin;
-    // DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
-    // DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
-    // Sensor_Vel=DFOC_M0_Velocity();
-    // setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
-    // DFOC_M0_setVelocity(target_speed);
     sleep(1000);
 }
 
@@ -448,54 +441,25 @@ void control_task(void *pvParameters)
 
     for(;;)
     {
-        // if(timer_count%1000==0)
-        // {
-        //     // timer_count++;
-        //     start_timer++;
-        //     UART_printf("loop 1S %d\r\n",start_timer);
-        //     UART_printf("timer 1us counter%d\r\n",timer_50us);
-        //     UART_printf("timer  micros() %d",micros());
-        // }
-        // if(timer_count%100==0)
-        // {
-        //     timer_count++;
-        //     timer_now = micros();
-        //     UART_printf("timer 50us counter%d\r\n",timer_50us-timer_pre_50us);
-        //     UART_printf("timer  micros() %d\r\n",timer_now-timer_pre);
-        //     timer_pre = timer_now;
-        //     timer_pre_50us = timer_50us;
-        //     timer_now = micros();
-        //     UART_printf("loop time %d timer_ms %d\r\n",timer_now-timer_pre,timer_count);
-        //     timer_pre = timer_now;
-        //     timer_count++;
-        //     // digitalWrite(LED_BUILTIN,pin);
-        //     // pin=!pin;
-        //     // DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
-        //     // DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
-        //     // Sensor_Vel=DFOC_M0_Velocity();
-        //     // setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
-        //     // DFOC_M0_setVelocity(target_speed);
-        // }
-    rec = xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(msToWait));//pdMS_TO_TICKS将ms转成对应的滴答数
-    if (rec==pdTRUE) {
-            // timer_now = micros();
-            // UART_printf("timer 50us counter%d\r\n",timer_50us-timer_pre_50us);
-            // UART_printf("timer  micros() %d\r\n",timer_now-timer_pre);
-            // UART_printf("timer1ms %d\r\n",timer_count);
-            // timer_pre = timer_now;
-            // timer_pre_50us = timer_50us;
-            digitalWrite(LED_BUILTIN,pin);
-            pin=!pin;
-            DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
-            DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
-            Sensor_Vel=DFOC_M0_Velocity();
-            setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
-            // DFOC_M0_setVelocity(target_speed);
-    }
-    else {
-      ticks = pdMS_TO_TICKS(msToWait);
-      Serial.printf("Fialed to receive semaphore after waiting %d ticks!\n", ticks);
-    }
+        rec = xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(msToWait));//pdMS_TO_TICKS将ms转成对应的滴答数
+        if (rec==pdTRUE) {
+                // timer_now = micros();
+                // UART_printf("timer 50us counter%d\r\n",timer_50us-timer_pre_50us);
+                // UART_printf("timer  micros() %d\r\n",timer_now-timer_pre);
+                // UART_printf("timer1ms %d\r\n",timer_count);
+                // timer_pre = timer_now;
+                // timer_pre_50us = timer_50us;
+                digitalWrite(LED_BUILTIN,pin);
+                pin=!pin;
+                DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
+                DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
+                Sensor_Vel=DFOC_M0_Velocity();
+                setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
+        }
+        else {
+        ticks = pdMS_TO_TICKS(msToWait);
+        Serial.printf("Fialed to receive semaphore after waiting %d ticks!\n", ticks);
+        }
 
     }
 }
@@ -512,15 +476,18 @@ void log_task(void *pvParameters)
   
     //Serial.printf("speed %f read speed%f\r\n",target_speed,Sensor_Vel);
     set_pid();
-    if(count++ %10 ==0)
+    if(count++ %5 ==0)
     {
-        UART_printf("target %d now %d\r\n",target_speed*100,Sensor_Vel*100);
+        // UART_printf("target %f now %f\r\n",target_speed,Sensor_Vel);
+        char log_float_print[32];
+        sprintf(log_float_print,"target %f now %f\r\n",target_speed,Sensor_Vel);
+        UART_printf("%s",log_float_print);
     }
     // timer = timer_count;
     // UART_printf("test time %d\r\n",timer - timer_pre);
     log_buffer_flush();
     // timer_pre =  timer;
-    delay(100);
+    delay(50);
   }
 }
 void set_pid()
