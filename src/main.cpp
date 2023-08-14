@@ -372,7 +372,7 @@ void tim1Interrupt()
 {
     timer_count++;
 
-    switch(timer_count%5)
+    switch(timer_count%2)
     {
         case 0:
         {
@@ -411,17 +411,25 @@ void setup() {
   timerAlarmEnable(tim2);
   xSemaphore = xSemaphoreCreateBinary();
 
-  UART_printf("aduino run at core %d frequence %d",xPortGetCoreID(),ESP.getCpuFreqMHz());
-  xTaskCreatePinnedToCore(control_task,"control_task",8192,NULL,4,&Task_Ctrl,1);
-  xTaskCreatePinnedToCore(log_task,"log_task",4096,NULL,3,&Task_Log,0);
+
   DFOC_Vbus(7.2);   
   DFOC_alignSensor(Motor_PP,Sensor_DIR);
   pinMode(LED_BUILTIN, OUTPUT);
+  UART_printf("aduino run at core %d frequence %d",xPortGetCoreID(),ESP.getCpuFreqMHz());
+
+  xTaskCreatePinnedToCore(control_task,"control_task",8192,NULL,3,&Task_Ctrl,1);
+  xTaskCreatePinnedToCore(log_task,"log_task",8192,NULL,2,&Task_Log,0);
 }
 
 
 void loop() 
 {
+    // pin=!pin;
+    // DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
+    // DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
+    // Sensor_Vel=DFOC_M0_Velocity();
+    // setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
+    // DFOC_M0_setVelocity(target_speed);
     sleep(1000);
 }
 
@@ -448,7 +456,7 @@ void control_task(void *pvParameters)
         //     UART_printf("timer 1us counter%d\r\n",timer_50us);
         //     UART_printf("timer  micros() %d",micros());
         // }
-        // if(timer_count%10==0)
+        // if(timer_count%100==0)
         // {
         //     timer_count++;
         //     timer_now = micros();
@@ -456,10 +464,10 @@ void control_task(void *pvParameters)
         //     UART_printf("timer  micros() %d\r\n",timer_now-timer_pre);
         //     timer_pre = timer_now;
         //     timer_pre_50us = timer_50us;
-        //     // timer_now = micros();
-        //     // UART_printf("loop time %d timer_ms %d\r\n",timer_now-timer_pre,timer_count);
-        //     // timer_pre = timer_now;
-        //     // timer_count++;
+        //     timer_now = micros();
+        //     UART_printf("loop time %d timer_ms %d\r\n",timer_now-timer_pre,timer_count);
+        //     timer_pre = timer_now;
+        //     timer_count++;
         //     // digitalWrite(LED_BUILTIN,pin);
         //     // pin=!pin;
         //     // DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
@@ -470,22 +478,18 @@ void control_task(void *pvParameters)
         // }
     rec = xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(msToWait));//pdMS_TO_TICKS将ms转成对应的滴答数
     if (rec==pdTRUE) {
-            timer_now = micros();
-            UART_printf("timer 50us counter%d\r\n",timer_50us-timer_pre_50us);
-            UART_printf("timer  micros() %d\r\n",timer_now-timer_pre);
-            UART_printf("timer1ms %d\r\n",timer_count);
-            timer_pre = timer_now;
-            timer_pre_50us = timer_50us;
             // timer_now = micros();
-            // UART_printf("loop time %d timer_ms %d\r\n",timer_now-timer_pre,timer_count);
+            // UART_printf("timer 50us counter%d\r\n",timer_50us-timer_pre_50us);
+            // UART_printf("timer  micros() %d\r\n",timer_now-timer_pre);
+            // UART_printf("timer1ms %d\r\n",timer_count);
             // timer_pre = timer_now;
-            // timer_count++;
-            // digitalWrite(LED_BUILTIN,pin);
-            // pin=!pin;
-            // DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
-            // DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
-            // Sensor_Vel=DFOC_M0_Velocity();
-            // setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
+            // timer_pre_50us = timer_50us;
+            digitalWrite(LED_BUILTIN,pin);
+            pin=!pin;
+            DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
+            DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
+            Sensor_Vel=DFOC_M0_Velocity();
+            setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
             // DFOC_M0_setVelocity(target_speed);
     }
     else {
@@ -569,7 +573,7 @@ void set_pid()
         preferences.putFloat("PID_I", pid_log.I);
         preferences.putFloat("target_speed", target_speed);
         preferences.end();
-        
+      
         log_printf("PID values P I D %f %f %f \r\ntarget speede\r\n",pid_log.P,pid_log.I,pid_log.D,target_speed);
     }
 }
