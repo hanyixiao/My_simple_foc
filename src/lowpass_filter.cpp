@@ -1,5 +1,5 @@
 #include "lowpass_filter.h"
-
+#if 0
 LowPassFilter::LowPassFilter(float time_constant)
     : Tf(time_constant)
     , y_prev(0.0f)
@@ -38,3 +38,4 @@ float LowPassFilter::operator() (float x)
     timestamp_prev = timestamp;
     return y;
 }
+#endif

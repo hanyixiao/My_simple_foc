@@ -1,9 +1,9 @@
 #include "MPU6050_tockn.h"
 #include <SimpleFOC.h>
 
-#include "AS5600.h"
+// #include "AS5600.h"
 
-#include "DengFOC.h"
+// #include "DengFOC.h"
 #include "esp_flash.h"
 #include <Preferences.h>
 
@@ -16,6 +16,8 @@ TaskHandle_t Task_Ctrl;
 
 #define LOG_BUFF_SIZE 1024
 static const char *const g_pcHex = "0123456789abcdef";
+
+#define LOG_PRINT_SYN
 struct log_buffer
 {
   uint8_t data[LOG_BUFF_SIZE];
@@ -101,7 +103,16 @@ float target_speed=4.0f;
 PIDController pid_log = PIDController{.P = 0.5, .I = 0.01, .D = 0.001, .ramp = 100000, .limit = 100};
 SemaphoreHandle_t xSemaphore;
 static BaseType_t xHigherPriorityTaskWoken;
- 
+
+
+BLDCMotor motor = BLDCMotor(11);
+BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25);
+
+MagneticSensorI2C mgI2c = MagneticSensorI2C(AS5600_I2C);
+
+InlineCurrentSense current_sense = InlineCurrentSense(0.01, 50.0, 5, 8);
+TwoWire S0_I2C = TwoWire(0);
+
 void tim1Interrupt()
 {
     timer_count++;
@@ -124,7 +135,7 @@ void tim2Interrupt()
 }
 
 void setup() {
- 
+  Serial.begin(115200);
   preferences.begin("my-app", false);
 
   pid_log.P = preferences.getFloat("PID_P", 0);
@@ -132,6 +143,9 @@ void setup() {
   pid_log.I = preferences.getFloat("PID_I", 0);
   target_speed = preferences.getFloat("target_speed",0);
   preferences.end();
+  LOG_print("aduino run at core %d frequence %d",xPortGetCoreID(),ESP.getCpuFreqMHz());
+
+  LOG_print("aduino run at line %d ",__LINE__);
 
   tim1 = timerBegin(0, 80, true);
   tim2 = timerBegin(1, 80, true);//40M
@@ -144,13 +158,36 @@ void setup() {
   timerAlarmWrite(tim2, 50ul, true);
   timerAlarmEnable(tim2);
   xSemaphore = xSemaphoreCreateBinary();
+  
+  LOG_print("aduino run at line %d\r\n ",__LINE__);
+  S0_I2C.begin(19,18, 400000UL);
+  mgI2c.init(&S0_I2C);
+  LOG_print("aduino run at line %d\r\n ",__LINE__);
+  motor.linkSensor(&mgI2c);
+  LOG_print("aduino run at line %d\r\n ",__LINE__);
+  driver.voltage_power_supply = 7.2;
+  driver.init();
+  LOG_print("aduino run at line %d\r\n ",__LINE__);
+  motor.linkDriver(&driver);
+  LOG_print("aduino run at line %d\r\n ",__LINE__);
+//   current_sense.init();
+  LOG_print("aduino run at line %d\r\n ",__LINE__);
+//   motor.linkCurrentSense(&current_sense);
+  LOG_print("aduino run at line %d\r\n ",__LINE__);
+  motor.torque_controller = TorqueControlType::foc_current; 
+  motor.controller = MotionControlType::torque;
+  motor.PID_current_q.P = 5;
+  motor.PID_current_q.I= 300;
+  motor.PID_current_d.P= 5;
+  motor.PID_current_d.I = 300;
+  motor.LPF_current_q.Tf = 0.01; 
+  motor.LPF_current_d.Tf = 0.01; 
+  motor.init();
+  LOG_print("aduino run at line %d ",__LINE__);
+  motor.initFOC();
 
-
-  DFOC_Vbus(7.2);   
-  DFOC_alignSensor(Motor_PP,Sensor_DIR);
   pinMode(LED_BUILTIN, OUTPUT);
   LOG_print("aduino run at core %d frequence %d",xPortGetCoreID(),ESP.getCpuFreqMHz());
-
   xTaskCreatePinnedToCore(control_task,"control_task",8192,NULL,3,&Task_Ctrl,1);
   xTaskCreatePinnedToCore(log_task,"log_task",8192,NULL,2,&Task_Log,0);
 }
@@ -186,10 +223,8 @@ void control_task(void *pvParameters)
                 // timer_pre_50us = timer_50us;
                 digitalWrite(LED_BUILTIN,pin);
                 pin=!pin;
-                DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
-                DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
-                Sensor_Vel=DFOC_M0_Velocity();
-                setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
+                motor.loopFOC();
+                motor.move(target_speed);
         }
         else {
         ticks = pdMS_TO_TICKS(msToWait);
@@ -201,7 +236,6 @@ void control_task(void *pvParameters)
 
 void log_task(void *pvParameters)
 {
-  Serial.begin(115200);
   LOG_print("log task run at %d\r\n",xPortGetCoreID());
   uint8_t count=0;
 //   long timer_pre = 0;
@@ -213,6 +247,8 @@ void log_task(void *pvParameters)
     set_pid();
     if(count++ %5 ==0)
     {
+        // float current = current_sense.getDCCurrent();
+        // LOG_print("get current %f\r\n",current);
         LOG_print("target %f now %f\r\n",target_speed,Sensor_Vel);
     }
     // timer = timer_count;

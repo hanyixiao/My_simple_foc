@@ -2,7 +2,7 @@
 #include "AS5600.h"
 #include "lowpass_filter.h"
 #include "pid.h"
-
+#if 0
 #define _constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 float voltage_power_supply;
 float Ualpha,Ubeta=0,Ua=0,Ub=0,Uc=0;
@@ -23,6 +23,7 @@ PIDController angle_loop_M0 = PIDController{.P = 2, .I = 0, .D = 0, .ramp = 1000
 Sensor_AS5600 S0=Sensor_AS5600(0);
 TwoWire S0_I2C = TwoWire(0);
 
+void LOG_print(const char *pcString, ...);
 //=================PID 设置函数=================
 //速度PID
 void DFOC_M0_SET_VEL_PID(float P,float I,float D,float ramp)   //M0角度环PID设置
@@ -140,12 +141,13 @@ void DFOC_alignSensor(int _PP,int _DIR)
 { 
   PP=_PP;
   DIR=_DIR;
-  setTorque(3, _3PI_2);  //起劲
+  setTorque(3, _3PI_2);  
   delay(1000);
-  S0.Sensor_update();  //更新角度，方便下面电角度读取
+  S0.Sensor_update(); 
   zero_electric_angle=_electricalAngle();
-  setTorque(0, _3PI_2);  //松劲（解除校准）
-  // Serial.print("0电角度：");Serial.println(zero_electric_angle);
+  setTorque(0, _3PI_2);  
+
+  LOG_print("zero electric angle%f\r\n",zero_electric_angle);
 }
 
 float DFOC_M0_Angle()
@@ -233,3 +235,4 @@ void DFOC_M0_setTorque(float Target)
 {
   setTorque(Target,_electricalAngle());
 }
+#endif
