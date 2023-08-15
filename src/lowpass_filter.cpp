@@ -10,11 +10,21 @@ LowPassFilter::LowPassFilter(float time_constant)
 extern void UART_printf(const char *pcString, ...);
 float LowPassFilter::operator() (float x)
 {
+    static float x_pre;
     unsigned long timestamp = micros();
 
     float dt = (timestamp - timestamp_prev)*1e-6f;
     
-    // UART_printf("dt value: %d\n", timestamp-timestamp_prev);
+    // log_printf("dt time value: %d \n", timestamp-timestamp_prev);
+    // log_printf("dv value %f\r\n",x);
+
+    /*speed limit */
+    if(abs(x)>=60)
+    {
+        x=x_pre;
+    }
+    x_pre = x;
+
     if (dt < 0.0f ) dt = 1e-3f;
     else if(dt > 0.3f) {
         y_prev = x;

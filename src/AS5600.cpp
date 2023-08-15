@@ -5,7 +5,7 @@
 #define _2PI 6.28318530718f
 
 
-
+extern void UART_printf(const char *pcString, ...);
 // AS5600 相关
 double Sensor_AS5600::getSensorAngle() {
   uint8_t angle_reg_msb = 0x0C;
@@ -32,6 +32,8 @@ double Sensor_AS5600::getSensorAngle() {
   
   readValue = ( readArray[1] &  lsb_mask );
   readValue += ( ( readArray[0] & msb_mask ) << lsb_used );
+
+//   UART_printf("read_Value %d\r\n",readValue);
   return (readValue/ (float)cpr) * _2PI; 
 
 }
@@ -46,6 +48,7 @@ Sensor_AS5600::Sensor_AS5600(int Mot_Num) {
 void Sensor_AS5600::Sensor_init(TwoWire* _wire) {
     wire=_wire;
     wire->begin();   //电机Sensor
+    wire->setTimeOut(1);
     delay(500);
     getSensorAngle(); 
     delayMicroseconds(1);
@@ -64,6 +67,7 @@ void Sensor_AS5600::Sensor_update() {
     // 圈数检测
     if(abs(d_angle) > (0.8f*_2PI) ) full_rotations += ( d_angle > 0 ) ? -1 : 1; 
     angle_prev = val;
+
 }
 
 float Sensor_AS5600::getMechanicalAngle() {
