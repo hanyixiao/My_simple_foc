@@ -1,7 +1,7 @@
 // default configuration values
 // change this file to optimal values for your application
 
-#define DEF_POWER_SUPPLY 12.0f //!< default power supply voltage
+#define DEF_POWER_SUPPLY 7.2f //!< default power supply voltage
 // velocity PI controller params
 #define DEF_PID_VEL_P 0.5f //!< default PID controller P value
 #define DEF_PID_VEL_I 10.0f //!<  default PID controller I value
@@ -36,7 +36,7 @@
 
 // angle P params
 #define DEF_P_ANGLE_P 20.0f //!< default P controller P value
-#define DEF_VEL_LIM 20.0f //!< angle velocity limit default
+#define DEF_VEL_LIM 50.0f //!< angle velocity limit default
 
 // index search
 #define DEF_INDEX_SEARCH_TARGET_VELOCITY 1.0f //!< default index search velocity

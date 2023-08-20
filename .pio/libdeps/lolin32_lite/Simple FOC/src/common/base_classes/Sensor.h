@@ -101,6 +101,9 @@ class Sensor{
          * 1 - ecoder with index (with index not found yet)
          */
         virtual int needsSearch();
+
+        virtual float readVelocity();
+        
     protected:
         /** 
          * Get current shaft angle from the sensor hardware, and 
@@ -124,6 +127,7 @@ class Sensor{
         long angle_prev_ts=0; // timestamp of last call to getAngle, used for velocity
         float vel_angle_prev=0; // angle at last call to getVelocity, used for velocity
         long vel_angle_prev_ts=0; // last velocity calculation timestamp
+        float vel_pre = 0;
         int32_t full_rotations=0; // full rotation tracking
         int32_t vel_full_rotations=0; // previous full rotation value for velocity calculation
 };

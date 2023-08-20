@@ -14,7 +14,7 @@ int pin = 0;
 TaskHandle_t Task_Log;
 TaskHandle_t Task_Ctrl;
 
-#define LOG_BUFF_SIZE 1024
+#define LOG_BUFF_SIZE 4096
 static const char *const g_pcHex = "0123456789abcdef";
 
 #define LOG_PRINT_SYN
@@ -105,19 +105,19 @@ SemaphoreHandle_t xSemaphore;
 static BaseType_t xHigherPriorityTaskWoken;
 
 
-BLDCMotor motor = BLDCMotor(11);
+BLDCMotor motor = BLDCMotor(7);
 BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25);
 
 MagneticSensorI2C mgI2c = MagneticSensorI2C(AS5600_I2C);
 
-InlineCurrentSense current_sense = InlineCurrentSense(0.01, 50.0, 5, 8);
+InlineCurrentSense current_sense = InlineCurrentSense(0.01, 50.0, 39, 36);
 TwoWire S0_I2C = TwoWire(0);
 
 void tim1Interrupt()
 {
     timer_count++;
 
-    switch(timer_count%2)
+    switch(timer_count%10)
     {
         case 0:
         {
@@ -159,37 +159,45 @@ void setup() {
   timerAlarmEnable(tim2);
   xSemaphore = xSemaphoreCreateBinary();
   
-  LOG_print("aduino run at line %d\r\n ",__LINE__);
+ 
   S0_I2C.begin(19,18, 400000UL);
   mgI2c.init(&S0_I2C);
-  LOG_print("aduino run at line %d\r\n ",__LINE__);
+ 
   motor.linkSensor(&mgI2c);
-  LOG_print("aduino run at line %d\r\n ",__LINE__);
+ 
   driver.voltage_power_supply = 7.2;
   driver.init();
-  LOG_print("aduino run at line %d\r\n ",__LINE__);
+ 
   motor.linkDriver(&driver);
-  LOG_print("aduino run at line %d\r\n ",__LINE__);
-//   current_sense.init();
-  LOG_print("aduino run at line %d\r\n ",__LINE__);
-//   motor.linkCurrentSense(&current_sense);
-  LOG_print("aduino run at line %d\r\n ",__LINE__);
+ 
+  current_sense.init();
+  motor.useMonitoring(Serial);
+  motor.linkCurrentSense(&current_sense);
+ 
   motor.torque_controller = TorqueControlType::foc_current; 
-  motor.controller = MotionControlType::torque;
-  motor.PID_current_q.P = 5;
+//   motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+//   motor.torque_controller = TorqueControlType::voltage;
+  motor.controller = MotionControlType::angle;
+
+  motor.PID_velocity.P = 10;
+
+  motor.PID_current_q.P = 50;
   motor.PID_current_q.I= 300;
   motor.PID_current_d.P= 5;
   motor.PID_current_d.I = 300;
   motor.LPF_current_q.Tf = 0.01; 
-  motor.LPF_current_d.Tf = 0.01; 
+  motor.LPF_current_d.Tf = 0.01;
+  
+  motor.printfun = LOG_print; 
   motor.init();
   LOG_print("aduino run at line %d ",__LINE__);
   motor.initFOC();
-
+  delay(2000);
   pinMode(LED_BUILTIN, OUTPUT);
-  LOG_print("aduino run at core %d frequence %d",xPortGetCoreID(),ESP.getCpuFreqMHz());
+  LOG_print("aduino run at core %d frequence %d\r\n",xPortGetCoreID(),ESP.getCpuFreqMHz());
   xTaskCreatePinnedToCore(control_task,"control_task",8192,NULL,3,&Task_Ctrl,1);
   xTaskCreatePinnedToCore(log_task,"log_task",8192,NULL,2,&Task_Log,0);
+
 }
 
 
@@ -225,6 +233,7 @@ void control_task(void *pvParameters)
                 pin=!pin;
                 motor.loopFOC();
                 motor.move(target_speed);
+
         }
         else {
         ticks = pdMS_TO_TICKS(msToWait);
@@ -249,7 +258,11 @@ void log_task(void *pvParameters)
     {
         // float current = current_sense.getDCCurrent();
         // LOG_print("get current %f\r\n",current);
-        LOG_print("target %f now %f\r\n",target_speed,Sensor_Vel);
+        PhaseCurrent_s  current = current_sense.getPhaseCurrents();
+        LOG_print("current a=%f,b=%f,c=%f\r\n",current.a,current.b,current.c);
+        Sensor_Vel = motor.sensor->readVelocity();
+
+        LOG_print("target %f now %f angle %f\r\n",target_speed,Sensor_Vel,motor.sensor->getAngle());
     }
     // timer = timer_count;
     // LOG_print("test time %d\r\n",timer - timer_pre);
@@ -308,7 +321,10 @@ void set_pid()
         preferences.putFloat("PID_I", pid_log.I);
         preferences.putFloat("target_speed", target_speed);
         preferences.end();
-      
+        motor.PID_velocity.P = pid_log.P;
+        motor.PID_velocity.D = pid_log.D;
+        motor.PID_velocity.I = pid_log.I;
+
         log_printf("PID values P I D %f %f %f \r\ntarget speede\r\n",pid_log.P,pid_log.I,pid_log.D,target_speed);
     }
 }

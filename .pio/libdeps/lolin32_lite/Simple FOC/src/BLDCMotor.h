@@ -8,7 +8,7 @@
 #include "common/foc_utils.h"
 #include "common/time_utils.h"
 #include "common/defaults.h"
-
+typedef void (*PrintFxn)(const char *str,...);
 /**
  BLDC motor class
 */
@@ -65,7 +65,7 @@ class BLDCMotor: public FOCMotor
      * This function doesn't need to be run upon each loop execution - depends of the use case
      */
     void move(float target = NOT_SET) override;
-    
+    PrintFxn printfun;
     float Ua, Ub, Uc;//!< Current phase voltages Ua,Ub and Uc set to motor
     float	Ualpha, Ubeta; //!< Phase voltages U alpha and U beta used for inverse Park and Clarke transform
 

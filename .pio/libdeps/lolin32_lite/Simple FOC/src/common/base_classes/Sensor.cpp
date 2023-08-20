@@ -26,6 +26,7 @@ float Sensor::getVelocity() {
     vel_angle_prev = angle_prev;
     vel_full_rotations = full_rotations;
     vel_angle_prev_ts = angle_prev_ts;
+    vel_pre = vel;
     return vel;
 }
 
@@ -70,3 +71,8 @@ int32_t Sensor::getFullRotations() {
 int Sensor::needsSearch() {
     return 0; // default false
 }
+
+float Sensor::readVelocity(){
+    return vel_pre;
+}
+

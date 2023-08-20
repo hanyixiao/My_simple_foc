@@ -74,6 +74,7 @@ void BLDCMotor::disable()
   // disable the driver
   driver->disable();
   // motor status update
+  printfun("disable\r\n");
   enabled = 0;
 }
 // enable motor driver
@@ -84,6 +85,7 @@ void BLDCMotor::enable()
   // set zero to PWM
   driver->setPwm(0, 0, 0);
   // motor status update
+  printfun("enable\r\n");
   enabled = 1;
 }
 
@@ -265,6 +267,8 @@ int BLDCMotor::absoluteZeroSearch() {
   return !sensor->needsSearch();
 }
 
+extern void LOG_print(const char *pcString, ...);
+
 // Iterative function looping FOC algorithm, setting Uq on the Motor
 // The faster it can be run the better
 void BLDCMotor::loopFOC() {
@@ -312,6 +316,8 @@ void BLDCMotor::loopFOC() {
       if(monitor_port) monitor_port->println(F("MOT: no torque control selected!"));
       break;
   }
+  
+  printfun("output voltage %f,%f,%f\r\n",voltage.q, voltage.d, electrical_angle);
 
   // set the phase voltage - FOC heart function :)
   setPhaseVoltage(voltage.q, voltage.d, electrical_angle);
@@ -324,6 +330,7 @@ void BLDCMotor::loopFOC() {
 // - if target is not set it uses motor.target value
 void BLDCMotor::move(float new_target) {
 
+  printfun("run move\r\n");
   // downsampling (optional)
   if(motion_cnt++ < motion_downsample) return;
   motion_cnt = 0;
@@ -338,11 +345,13 @@ void BLDCMotor::move(float new_target) {
     shaft_angle = shaftAngle(); // read value even if motor is disabled to keep the monitoring updated but not in openloop mode
   // get angular velocity 
   shaft_velocity = shaftVelocity(); // read value even if motor is disabled to keep the monitoring updated
-
+  
+  printfun("enabled %d\r\n",enabled);
   // if disabled do nothing
   if(!enabled) return;
   // set internal target variable
   if(_isset(new_target)) target = new_target;
+  printfun("controller %d\r\n",controller);
 
   switch (controller) {
     case MotionControlType::torque:
@@ -362,8 +371,14 @@ void BLDCMotor::move(float new_target) {
       shaft_angle_sp = target;
       // calculate velocity set point
       shaft_velocity_sp = P_angle( shaft_angle_sp - shaft_angle );
+
+      printfun("shaft_angle_sp %f shaft_angle %f shaft_velocity_sp%f shaft_velocity %f\r\n"
+        ,shaft_angle_sp,shaft_angle,shaft_velocity_sp,shaft_velocity);
+
       // calculate the torque command - sensor precision: this calculation is ok, but based on bad value from previous calculation
       current_sp = PID_velocity(shaft_velocity_sp - shaft_velocity); // if voltage torque control
+      
+      printfun("current sp %f\r\n",current_sp);
       // if torque controlled through voltage
       if(torque_controller == TorqueControlType::voltage){
         // use voltage if phase-resistance not provided
@@ -595,7 +610,7 @@ void BLDCMotor::setPhaseVoltage(float Uq, float Ud, float angle_el) {
       break;
 
   }
-
+  printfun("Ua Ub Uc %f %f %f \r\n",Ua,Ub,Uc);
   // set the voltages in driver
   driver->setPwm(Ua, Ub, Uc);
 }
