@@ -132,4 +132,4 @@
  src/AS5600.h \
  C:/Users/han24/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
  C:/Users/han24/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal.h \
- src/lowpass_filter.h src/pid.h
+ src/lowpass_filter.h src/pid.h src/InlineCurrent.h

@@ -146,7 +146,7 @@ void setup() {
   xSemaphore = xSemaphoreCreateBinary();
 
 
-  DFOC_Vbus(7.2);   
+  DFOC_Vbus(11.2);   
   DFOC_alignSensor(Motor_PP,Sensor_DIR);
   pinMode(LED_BUILTIN, OUTPUT);
   LOG_print("aduino run at core %d frequence %d",xPortGetCoreID(),ESP.getCpuFreqMHz());
@@ -162,6 +162,7 @@ void loop()
 }
 
 void set_pid();
+extern float Ua,Ub,Uc;
 void control_task(void *pvParameters)
 { 
     LOG_print("control_task task run at %d\r\n",xPortGetCoreID());
@@ -174,6 +175,8 @@ void control_task(void *pvParameters)
     BaseType_t msToWait = 1000; // 信号量接收等待时间
     TickType_t ticks;
 
+    uint8_t count = 0;
+    float t = 0;
     for(;;)
     {
         rec = xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(msToWait));//pdMS_TO_TICKS将ms转成对应的滴答数
@@ -186,10 +189,30 @@ void control_task(void *pvParameters)
                 // timer_pre_50us = timer_50us;
                 digitalWrite(LED_BUILTIN,pin);
                 pin=!pin;
-                DFOC_M0_SET_ANGLE_PID(0.5,0,0,0);
-                DFOC_M0_SET_VEL_PID(pid_log.P,pid_log.I,pid_log.D,1000);
-                Sensor_Vel=DFOC_M0_Velocity();
-                setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
+                runFOC();
+                DFOC_M0_SET_CURRENT_PID(50,200,0,100);
+                DFOC_M0_setTorque(serial_motor_target());
+                count++;
+                if(count>30)
+                {
+                    // count=0;
+                    // Serial.printf("%f %f\n", DFOC_M0_Current(), serial_motor_target());
+                    // t += 0.1;
+                    // 发送数据
+                    float ch[4];  
+                    ch[0] = DFOC_M0_Current();
+                    ch[1] = Uc;
+                    ch[2] = Ua;
+                    ch[3] = Ub;
+                    Serial.write((char *)ch, sizeof(float) * 4); 
+                    // 发送帧尾
+                    char tail[4] = {0x00, 0x00, 0x80, 0x7f};
+                    Serial.write(tail, 4);
+                }
+                // Sensor_Vel=DFOC_M0_Velocity();
+                // setTorque(DFOC_M0_VEL_PID((target_speed-Sensor_Vel)),_electricalAngle());   //速度闭环
+                //接收串口
+                serialReceiveUserCommand();
         }
         else {
         ticks = pdMS_TO_TICKS(msToWait);
@@ -210,14 +233,14 @@ void log_task(void *pvParameters)
   {
   
     //Serial.printf("speed %f read speed%f\r\n",target_speed,Sensor_Vel);
-    set_pid();
-    if(count++ %5 ==0)
-    {
-        LOG_print("target %f now %f\r\n",target_speed,Sensor_Vel);
-    }
-    // timer = timer_count;
-    // LOG_print("test time %d\r\n",timer - timer_pre);
-    log_buffer_flush();
+    // set_pid();
+    // if(count++ %5 ==0)
+    // {
+    //     LOG_print("target %f now %f\r\n",target_speed,Sensor_Vel);
+    // }
+    // // timer = timer_count;
+    // // LOG_print("test time %d\r\n",timer - timer_pre);
+    // log_buffer_flush();
     // timer_pre =  timer;
     delay(50);
   }

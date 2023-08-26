@@ -190,4 +190,5 @@
  .pio/libdeps/lolin32_lite/Simple\ FOC/src/communication/commands.h \
  .pio/libdeps/lolin32_lite/Simple\ FOC/src/communication/StepDirListener.h \
  .pio/libdeps/lolin32_lite/Simple\ FOC/src/communication/../common/foc_utils.h \
+ src/AS5600.h src/DengFOC.h \
  C:/Users/han24/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src/Preferences.h
