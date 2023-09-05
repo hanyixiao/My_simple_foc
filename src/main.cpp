@@ -146,7 +146,7 @@ void setup() {
   xSemaphore = xSemaphoreCreateBinary();
 
 
-  DFOC_Vbus(11.2);   
+  DFOC_Vbus(7.2);   
   DFOC_alignSensor(Motor_PP,Sensor_DIR);
   pinMode(LED_BUILTIN, OUTPUT);
   LOG_print("aduino run at core %d frequence %d",xPortGetCoreID(),ESP.getCpuFreqMHz());
@@ -163,6 +163,7 @@ void loop()
 
 void set_pid();
 extern float Ua,Ub,Uc;
+extern PIDController current_loop_M0;
 void control_task(void *pvParameters)
 { 
     LOG_print("control_task task run at %d\r\n",xPortGetCoreID());
@@ -174,9 +175,11 @@ void control_task(void *pvParameters)
     BaseType_t rec;
     BaseType_t msToWait = 1000; // 信号量接收等待时间
     TickType_t ticks;
-
+    DFOC_M0_SET_CURRENT_PID(300.0,50.0,0,1000);
     uint8_t count = 0;
+    float current_loop=0;
     float t = 0;
+    float current = 0;
     for(;;)
     {
         rec = xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(msToWait));//pdMS_TO_TICKS将ms转成对应的滴答数
@@ -190,8 +193,10 @@ void control_task(void *pvParameters)
                 digitalWrite(LED_BUILTIN,pin);
                 pin=!pin;
                 runFOC();
-                DFOC_M0_SET_CURRENT_PID(50,200,0,100);
-                DFOC_M0_setTorque(serial_motor_target());
+                // DFOC_M0_setTorque(serial_motor_target());
+                current = DFOC_M0_Current();
+                current_loop = current_loop_M0(serial_motor_target()-current);
+                setTorque(current_loop,_electricalAngle());
                 count++;
                 if(count>30)
                 {
@@ -200,10 +205,10 @@ void control_task(void *pvParameters)
                     // t += 0.1;
                     // 发送数据
                     float ch[4];  
-                    ch[0] = DFOC_M0_Current();
-                    ch[1] = Uc;
-                    ch[2] = Ua;
-                    ch[3] = Ub;
+                    ch[0] = current;
+                    ch[1] = serial_motor_target();
+                    ch[2] = current_loop;
+                    ch[3] = 0;
                     Serial.write((char *)ch, sizeof(float) * 4); 
                     // 发送帧尾
                     char tail[4] = {0x00, 0x00, 0x80, 0x7f};
@@ -233,7 +238,7 @@ void log_task(void *pvParameters)
   {
   
     //Serial.printf("speed %f read speed%f\r\n",target_speed,Sensor_Vel);
-    // set_pid();
+    //set_pid();
     // if(count++ %5 ==0)
     // {
     //     LOG_print("target %f now %f\r\n",target_speed,Sensor_Vel);
@@ -295,7 +300,7 @@ void set_pid()
         preferences.putFloat("PID_I", pid_log.I);
         preferences.putFloat("target_speed", target_speed);
         preferences.end();
-      
+        // DFOC_M0_SET_CURRENT_PID(pid_log.P,pid_log.i,pid_log.d,1000)
         log_printf("PID values P I D %f %f %f \r\ntarget speede\r\n",pid_log.P,pid_log.I,pid_log.D,target_speed);
     }
 }
